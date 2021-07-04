@@ -1,0 +1,37 @@
+[env]
+RUST_BACKTRACE = 1
+CARGO_MAKE_COVERAGE_PROVIDER = "grcov"
+
+[tasks.format]
+description = "Format rust programs."
+install_crate = "rustfmt"
+command = "cargo"
+args = ["fmt"]
+
+[tasks.test]
+command = "cargo"
+args = ["test"]
+
+[tasks.doc]
+description = "Build this package's and its dependencies' documentation"
+command = "cargo"
+args = ["doc"]
+
+[tasks.build]
+description = "Compile the current package"
+command = "cargo"
+args = ["build"]
+dependencies = ["doc"]
+
+[tasks.clean]
+description = "Remove the target directory"
+command = "cargo"
+args = ["clean"]
+
+[tasks.dev]
+dependencies = ["format", "test", "build"]
+
+[tasks.prod]
+command = "cargo"
+args = ["build", "--release"]
+dependencies = ["clean"]
