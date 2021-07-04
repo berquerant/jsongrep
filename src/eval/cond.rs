@@ -46,9 +46,7 @@ impl Condition {
                 (Value::Null, Value::Null) => Ok(true),
                 (Value::Bool(x), Value::Bool(y)) => Ok(*x == *y),
                 (Value::Int(x), Value::Int(y)) => Ok(*x == *y),
-                (Value::Float(x), Value::Float(y)) => {
-                    Ok(((*x).abs() - (*y).abs()).abs() <= f64::EPSILON)
-                }
+                (Value::Float(x), Value::Float(y)) => Ok((*x - *y).abs() <= f64::EPSILON),
                 (Value::String(x), Value::String(y)) => Ok(*x == *y),
                 _ => Err(Error::new(ErrorCode::TypeMismatch {
                     want: Self::type_name(l),

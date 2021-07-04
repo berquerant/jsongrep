@@ -100,7 +100,7 @@ impl cmp::PartialEq for Value {
             (Value::Null, Value::Null) => true,
             (Value::Bool(x), Value::Bool(y)) => x == y,
             (Value::Int(x), Value::Int(y)) => x == y,
-            (Value::Float(x), Value::Float(y)) => (x.abs() - y.abs()).abs() <= f64::EPSILON,
+            (Value::Float(x), Value::Float(y)) => (x - y).abs() <= f64::EPSILON,
             (Value::String(x), Value::String(y)) => x == y,
             _ => false,
         }
