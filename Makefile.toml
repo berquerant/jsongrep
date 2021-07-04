@@ -1,6 +1,5 @@
 [env]
 RUST_BACKTRACE = 1
-CARGO_MAKE_COVERAGE_PROVIDER = "grcov"
 
 [tasks.format]
 description = "Format rust programs."
