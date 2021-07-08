@@ -1,7 +1,10 @@
 use jsongrep::error::{Error, ErrorCode, Result};
 use jsongrep::query::Query;
 use jsongrep::raw_query::Query as RawQuery;
+use jsongrep::raw_sort::Sort as RawSort;
 use jsongrep::select::Query as Selector;
+use jsongrep::sort::Sort;
+use serde_json::from_str;
 use std::convert::TryFrom;
 use std::fs::File;
 use std::io;
@@ -12,16 +15,35 @@ use structopt::StructOpt;
 fn main() {
     let opt = Opt::from_args().validate().unwrap();
     let q = opt.get_selector().unwrap();
+    let mut s = opt.get_sort().unwrap();
+    let use_sort = s.is_some();
+    let mut lines: Vec<String> = Vec::new();
     let stdin = io::stdin();
     for (n, l) in stdin.lock().lines().enumerate() {
         let line = l.unwrap();
         match q.select(&line) {
             Ok(_) => {
-                println!("{}", line);
+                if use_sort {
+                    match s.as_mut() {
+                        Some(x) => {
+                            let v = from_str(&line).unwrap();
+                            x.add(v);
+                            lines.push(line);
+                        }
+                        _ => unreachable!(),
+                    }
+                } else {
+                    println!("{}", line);
+                }
             }
             Err(e) if !e.is_filtered() => eprintln!("line {}: {}", n + 1, e),
             _ => continue,
         }
+    }
+    if !lines.is_empty() {
+        s.unwrap().sorted_indexes().iter().for_each(|i| {
+            println!("{}", lines[*i]);
+        });
     }
 }
 
@@ -66,6 +88,28 @@ struct Opt {
     /// Specify query by file.
     #[structopt(short = "q", long = "query_file")]
     query: Option<PathBuf>,
+    /// Specify sort on command line.
+    ///
+    /// Sort `/i` value desc
+    ///
+    /// {
+    ///   "sort": [
+    ///      {
+    ///        "p": "/i",
+    ///        "ord": "desc"
+    ///      }
+    ///   ]
+    /// }
+    ///
+    /// Basic sort order: null < array < object < bool < number < string.
+    /// Ignore inner values of array and object.
+    ///
+    /// If a pointed value does not exist, the row is sorted as null.
+    #[structopt(short = "k", long = "raw_sort")]
+    raw_sort: Option<String>,
+    /// Specify sort by file.
+    #[structopt(short = "s", long = "sort")]
+    sort: Option<PathBuf>,
 }
 
 impl Opt {
@@ -76,6 +120,23 @@ impl Opt {
             ))),
             _ => Ok(self.clone()),
         }
+    }
+    fn get_raw_sort(&self) -> Option<Result<RawSort>> {
+        let k = self
+            .raw_sort
+            .as_ref()
+            .map(|x| RawSort::try_from(&x as &str));
+        let s = self.sort.as_ref().map(|x| {
+            let mut f = File::open(x).map_err(|x| Error::new(ErrorCode::Io(x)))?;
+            let mut buf = String::new();
+            f.read_to_string(&mut buf)
+                .map_err(|x| Error::new(ErrorCode::Io(x)))?;
+            RawSort::try_from(&buf as &str)
+        });
+        k.xor(s)
+    }
+    fn get_sort(&self) -> Result<Option<Sort>> {
+        self.get_raw_sort().map(|x| x.map(Sort::from)).transpose()
     }
     fn get_raw_query(&self) -> Option<Result<RawQuery>> {
         let r = self

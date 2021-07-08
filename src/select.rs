@@ -82,7 +82,7 @@ mod tests {
         assert!(got.err().unwrap().is_filtered());
     }
     #[test]
-    fn test_iter_ok() {
+    fn test_query_ok() {
         let q = MockOkEvaluableQuery(true);
         let got = Query::new(Box::new(q)).select(r#"{"x":1}"#).unwrap();
         let want: Value = from_str(r#"{"x":1}"#).unwrap();
